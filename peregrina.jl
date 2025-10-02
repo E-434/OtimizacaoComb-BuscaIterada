@@ -1,5 +1,7 @@
 "Peregrinação por Busca Iterada"
 
+using Random
+
 function leitor(filepath :: String)
     open(filepath, "r") do f
         #Ler número de templos
@@ -21,7 +23,8 @@ function leitor(filepath :: String)
             b = parse(Int, b)
             push!(pre_req[b], a)   #b depende de a
         end
-    return Instancia(n, m, clauses, appears_in)
+        return Instancia(templos, restricoes, coord, pre_req)
+    end
 end
 
 #Instância de Peregrinação
@@ -43,13 +46,17 @@ function distancia_cartesiana(dest :: Vector{Int}, src :: Vector{Int})
 end
 
 #Main
-function main(){
+function main()
+    #Verifica se usuário inseriu 3 parâmetros obrigatórios
     if length(ARGS)<3
         println("Estrutura pedida: julia peregrina.jl <arquivo_entrada> <numero_iteracoes> <seed>")
         return 
     end
+    #Salva parâmetros do usuário
     path = ARGS[1]
     max_iteracoes = parse(Int, ARGS[2])
     seed = parse(Int, ARGS[3])
     Random.seed!(seed)
-}
+end
+
+main()
