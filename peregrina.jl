@@ -1,5 +1,10 @@
 "Peregrinação por Busca Iterada"
 
+"Instruções para execução em Linux:
+Em qualquer ambiente de terminal, chame o programa seguindo o padrão abaixo:
+julia <caminho_este_programa> <caminho_arquivo_entrada> <numero_iteracoes> <seed> <numero_perturbacoes>"
+
+
 using Random
 
 function leitor(filepath :: String)
@@ -276,6 +281,7 @@ function busca_iterada(instancia::Instancia, max_iteracoes::Int, K::Int)
             println("300 segundos iteracao=$iteracao_300 elapsed=$(round(elapsed,digits=2))\n")
         end
     end
+    println("Tempo de execucao da busca iterada: ", round(time()-t0, digits=2))
 end
 
 #Main
