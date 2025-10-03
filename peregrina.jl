@@ -92,7 +92,7 @@ function atualizar_distancia(solucao_inicial :: Vector{Int}, instancia::Instanci
 end
 
 #Gera solução inicial aleatória
-function solucao_inicial(instancia :: Instancia)::Vector{Int}
+function solucao_inicial(instancia :: Instancia)
     #Cria vetor com os índices dos templos
     templos_livres = collect(1:instancia.templos)
     #Inicializa caminho vazio
@@ -234,6 +234,11 @@ end
 
 #Função para busca iterada
 function busca_iterada(instancia::Instancia, max_iteracoes::Int, K::Int)
+    # tempo inicial
+    t0 = time()
+    # variáveis para armazenar a primeira iteração após 5s e 300s
+    iteracao_5 = nothing
+    iteracao_300 = nothing
     #Inicialização dos valores
     iteracoes=0
     caminho=Int[]
@@ -242,17 +247,34 @@ function busca_iterada(instancia::Instancia, max_iteracoes::Int, K::Int)
     melhor_caminho = solucao_inicial(instancia)
     #Calcula distância inicial
     menor_distancia = distancia_total(instancia, melhor_caminho)
-    #Imprime solução inicial (teste)
-    println("Solução inicial - Caminho: ",join(melhor_caminho, "->"), "\nDistancia: ", menor_distancia)
-    #busca_local
+    caminho=melhor_caminho
+    distancia=menor_distancia
+    # Imprime solução inicial 
+    println("$(round(0.0,digits=2)) segundos, distancia: $menor_distancia, $(join(melhor_caminho, "->"))")
+    #Iteração
     while iteracoes<max_iteracoes
-        caminho, distancia = busca_local(melhor_caminho, menor_distancia, instancia)
+        #Realiza busca local
+        caminho, distancia = busca_local(caminho, distancia, instancia)
+        #Atualiza solução se achar melhor e imprime
         if distancia < menor_distancia
             melhor_caminho=caminho; menor_distancia=distancia
+            #Cálculo tempo
+            elapsed = time() - t0
+            println("$(round(elapsed,digits=2)) segundos, distancia: $menor_distancia, $(join(melhor_caminho, "->"))")
         end
-        println("Iteração ", iteracoes+1, "\nCaminho: ",join(melhor_caminho, "->"), "\nDistancia: ", menor_distancia)
-        melhor_caminho, menor_distancia = perturbation(melhor_caminho, menor_distancia, instancia, K)      
+        caminho, distancia = perturbation( caminho, distancia, instancia, K)      
         iteracoes+=1
+        # verifica e registra a primeira iteração atingida após 5s e 300s
+        elapsed = time() - t0
+        if iteracao_5 === nothing && elapsed >= 5.0
+            # iteracoes corresponde à iteração que acabou de completar (ou a próxima)
+            iteracao_5 = iteracoes
+            println("#5 segundos iteracao=$iteracao_5 elapsed=$(round(elapsed,digits=2))")
+        end
+        if iteracao_300 === nothing && elapsed >= 300.0
+            iteracao_300 = iteracoes
+            println("300 segundos iteracao=$iteracao_30 elapsed=$(round(elapsed,digits=2))")
+        end
     end
 end
 
