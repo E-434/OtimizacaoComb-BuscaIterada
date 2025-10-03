@@ -60,6 +60,34 @@ function distancia_total(instancia :: Instancia, caminho :: Vector{Int})
     return dist_total
 end
 
+
+function update_solucao(solucao_inicial :: Vector{Int}, instancia::Instancia, i::Int, j::Int, distancia_antiga::Int)
+    # Copia distância antiga
+    distancia_nova = distancia_antiga
+    # Para cada templo trocado, considerar a distância com o anterior e o próximo (se existirem)
+    #se j é i+1
+    # Para i
+    if i > 1
+        distancia_nova -= distancia_cartesiana(instancia.coord[solucao_inicial[i-1]], instancia.coord[solucao_inicial[j]])
+        distancia_nova += distancia_cartesiana(instancia.coord[solucao_inicial[i-1]], instancia.coord[solucao_inicial[i]])
+    end
+    if i < length(solucao_inicial)
+        distancia_nova -= distancia_cartesiana(instancia.coord[solucao_inicial[j]], instancia.coord[solucao_inicial[i+1]])
+        distancia_nova += distancia_cartesiana(instancia.coord[solucao_inicial[i]], instancia.coord[solucao_inicial[i+1]])
+    end
+    # Para j
+    if j > 1
+        distancia_nova -= distancia_cartesiana(instancia.coord[solucao_inicial[j-1]], instancia.coord[solucao_inicial[i]])
+        distancia_nova += distancia_cartesiana(instancia.coord[solucao_inicial[j-1]], instancia.coord[solucao_inicial[j]])
+    end
+    if j < length(solucao_inicial)
+        distancia_nova -= distancia_cartesiana(instancia.coord[solucao_inicial[i]], instancia.coord[solucao_inicial[j+1]])
+        distancia_nova += distancia_cartesiana(instancia.coord[solucao_inicial[j]], instancia.coord[solucao_inicial[j+1]])
+    end
+    # Atualiza a distância do caminho
+    return distancia_nova
+end
+
 #Gera solução inicial aleatória
 function solucao_inicial(instancia :: Instancia)
     #Cria vetor com os índices dos templos
@@ -79,6 +107,57 @@ function solucao_inicial(instancia :: Instancia)
     return caminho
 end
 
+#Busca local por swap de vértices
+function busca_local(solucao_inicial :: Vector{Int}, distancia_inicial :: Int, instancia::Instancia)
+    tamanho = length(solucao_inicial)
+    solucao = copy(solucao_inicial)
+    distancia = distancia_inicial
+    # vetor que guarda a posição atual de cada templo
+    pos = zeros(Int, tamanho)
+    for idx in 1:tamanho
+        pos[solucao[idx]] = idx
+    end
+    melhorou = true
+    while melhorou
+        melhorou = false
+        for i in 1:tamanho-1
+            vi = solucao[i]
+            for j in i+1:tamanho
+                vj = solucao[j]
+                # Checa se vj depende de vi (se sim, todos vj não poderam trocar com vi)
+                if vi in instancia.pre_req[vj]
+                    break
+                end
+                # Checa se algum pré-requisito de vj está entre i e j
+                tem_pre_req_no_meio = any(pr -> pos[pr] > i && pos[pr] < j, instancia.pre_req[vj])
+                if tem_pre_req_no_meio
+                    continue
+                end
+                # Realiza swap temporário
+                solucao[i], solucao[j] = solucao[j], solucao[i]
+                # Atualiza posições
+                pos[vi], pos[vj] = pos[vj], pos[vi]
+                # Calcula nova distância incremental
+                nova_distancia = update_solucao(solucao, instancia, i, j, distancia)
+
+                if nova_distancia < distancia
+                    distancia = nova_distancia
+                    melhorou = true
+                    break
+                else
+                    # Reverte swap
+                    solucao[i], solucao[j] = solucao[j], solucao[i]
+                    pos[vi], pos[vj] = pos[vj], pos[vi]
+                end
+            end
+            if melhorou
+                break
+            end
+        end
+    end
+    return solucao, distancia
+end
+
 #Função para busca iterada
 function busca_iterada(instancia :: Instancia, max_iteracoes)
 #Inicialização dos valores
@@ -90,7 +169,12 @@ caminho = solucao_inicial(instancia)
 #Calcula distância inicial
 distancia = distancia_total(instancia,caminho)
 #Imprime solução inicial (teste)
-println("Caminho: ",join(caminho, " "), "\nDistancia: ", distancia)
+println("Caminho: ",join(caminho, "->"), "\nDistancia: ", distancia)
+#busca_local
+caminho, distancia = busca_local(caminho,distancia,instancia)
+melhor_caminho=caminho
+menor_distancia=distancia
+println("Caminho: ",join(caminho, "->"), "\nDistancia: ", distancia)
 end
 
 #Main
