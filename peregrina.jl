@@ -1,5 +1,7 @@
 "Peregrinação por Busca Iterada"
-
+"André Gustavo Dessoy Hübner                      00315569
+Emanuel Ruschel Rauter                      00578247
+Jeoana Alexia de Campos Vargas               00270178"
 "Instruções para execução em Linux:
 Em qualquer ambiente de terminal, chame o programa seguindo o padrão abaixo:
 julia <caminho_este_programa> <caminho_arquivo_entrada> <numero_iteracoes> <seed> <numero_perturbacoes>"
