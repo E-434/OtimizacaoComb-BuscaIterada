@@ -250,7 +250,7 @@ function busca_iterada(instancia::Instancia, max_iteracoes::Int, K::Int)
     caminho=melhor_caminho
     distancia=menor_distancia
     # Imprime solução inicial 
-    println("$(round(0.0,digits=2)) segundos, distancia: $menor_distancia, $(join(melhor_caminho, "->"))")
+    println("$(round(0.0,digits=2)) segundos, distancia: $menor_distancia, $(join(melhor_caminho, "->"))\n")
     #Iteração
     while iteracoes<max_iteracoes
         #Realiza busca local
@@ -260,7 +260,7 @@ function busca_iterada(instancia::Instancia, max_iteracoes::Int, K::Int)
             melhor_caminho=caminho; menor_distancia=distancia
             #Cálculo tempo
             elapsed = time() - t0
-            println("$(round(elapsed,digits=2)) segundos, distancia: $menor_distancia, $(join(melhor_caminho, "->"))")
+            println("$(round(elapsed,digits=2)) segundos, distancia: $menor_distancia, $(join(melhor_caminho, "->"))\n")
         end
         caminho, distancia = perturbation( caminho, distancia, instancia, K)      
         iteracoes+=1
@@ -269,11 +269,11 @@ function busca_iterada(instancia::Instancia, max_iteracoes::Int, K::Int)
         if iteracao_5 === nothing && elapsed >= 5.0
             # iteracoes corresponde à iteração que acabou de completar (ou a próxima)
             iteracao_5 = iteracoes
-            println("#5 segundos iteracao=$iteracao_5 elapsed=$(round(elapsed,digits=2))")
+            println("#5 segundos iteracao=$iteracao_5 elapsed=$(round(elapsed,digits=2))\n")
         end
         if iteracao_300 === nothing && elapsed >= 300.0
             iteracao_300 = iteracoes
-            println("300 segundos iteracao=$iteracao_300 elapsed=$(round(elapsed,digits=2))")
+            println("300 segundos iteracao=$iteracao_300 elapsed=$(round(elapsed,digits=2))\n")
         end
     end
 end
