@@ -41,19 +41,16 @@ end
 function distancia_cartesiana(dest :: Vector{Int}, src :: Vector{Int})
     #Distância = Hipotenusa eentre os dois pontos
     dist = sqrt((src[1]-dest[1])^2+(src[2]-dest[2])^2)
-    #Considera 2 casas depois da vírgula (multiplica por 100 e arredonda pra baixo)
+    #Considera 2 casas depois da vírgual (multiplica por 100 e arredonda pra baixo)
     return floor(Int, dist*100)
 end
 
 #Calcula distância total do caminho (necessário para solução inicial)
 function distancia_total(instancia :: Instancia, caminho :: Vector{Int})
-    if length(caminho) <= 1
-        return 0
-    end
     #Inicializa distância total
     dist_total=0
     #Percorre caminho até penúltimo elemento
-    for i in 1:length(caminho)-1
+    for i in 1:(instancia.templos-1)
         #Calcula distância do templo atual para o próximo templo
         src=caminho[i]
         dst=caminho[i+1]
@@ -64,7 +61,7 @@ function distancia_total(instancia :: Instancia, caminho :: Vector{Int})
 end
 
 
-function atualizar_distancia(solucao_inicial :: Vector{Int}, instancia::Instancia, i::Int, j::Int, distancia_antiga::Int)
+function update_solucao(solucao_inicial :: Vector{Int}, instancia::Instancia, i::Int, j::Int, distancia_antiga::Int)
     # Copia distância antiga
     distancia_nova = distancia_antiga
     # Para cada templo trocado, considerar a distância com o anterior e o próximo (se existirem)
@@ -103,7 +100,7 @@ function solucao_inicial(instancia :: Instancia)
         possiveis = [templo for templo in templos_livres if all(pre_req -> pre_req in caminho, instancia.pre_req[templo])]
         #Escolhe algum templo possível aleatório e adiciona ao caminho
         escolhido = rand(possiveis)
-        push!(caminho, escolhido)
+        push!(caminho,escolhido)
         #Remove templo adicionado ao caminho dos templos livres
         filter!(resto -> resto != escolhido, templos_livres)
     end
@@ -141,7 +138,7 @@ function busca_local(solucao_inicial :: Vector{Int}, distancia_inicial :: Int, i
                 # Atualiza posições
                 pos[vi], pos[vj] = pos[vj], pos[vi]
                 # Calcula nova distância incremental
-                nova_distancia = atualizar_distancia(solucao, instancia, i, j, distancia)
+                nova_distancia = update_solucao(solucao, instancia, i, j, distancia)
 
                 if nova_distancia < distancia
                     distancia = nova_distancia
@@ -154,154 +151,49 @@ function busca_local(solucao_inicial :: Vector{Int}, distancia_inicial :: Int, i
                 end
             end
             if melhorou
-                break           
+                break
             end
         end
     end
     return solucao, distancia
 end
 
-function perturbation(solucao_inicial::Vector{Int}, distancia_inicial::Int, instancia::Instancia, k::Int = 2)
-    tamanho = length(solucao_inicial)
-    solucao = copy(solucao_inicial)
-
-    if k > tamanho
-        error("K maior que o número de templos!")
-    end
-
-    #Seleciona aletoriamente k nodos para as recombinações
-    nodosMover = randperm(tamanho)[1:k]
-    elementos = solucao[nodosMover]
-    #Ordena-os de forma a deleter os de maior índice primeiro
-    sort!(nodosMover; rev=true)
-    #Prepara as realocações deletando os nodos
-    for idx in nodosMover
-        deleteat!(solucao, idx)
-    end
-
-    for elemento in elementos
-        #Para cada elemento iremos buscar possíveis pontos de recombinação (que respeitem os pré-requisitos)
-        solucoes_possiveis = Int[]
-        for pos_nova in 1:(length(solucao)+1)
-            #Copia para as verificações de válidade deste elemento
-            temp_sol = copy(solucao)
-            insert!(temp_sol, pos_nova, elemento)
-
-            #Busca pelo índice do elemento atual na solução
-            elem_idx = findfirst(==(elemento), temp_sol)
-            valid = true
-            #Com ele válida se cada um de seus pré-requisitos está atrás do mesmo nesta recombinação
-            for pre_req in instancia.pre_req[elemento] 
-                pre_req_idx = findfirst(==(pre_req), temp_sol)
-                if pre_req_idx === nothing || pre_req_idx > elem_idx
-                    valid = false
-                end
-            end
-
-            #Agora verifica se para todos os outros nodos que tem ele como pré-requisito não quebraram
-            if valid
-                for (outro_idx, outro) in enumerate(temp_sol)
-                    #Se o elemento atual é um dos pré-requisitos de outro nodo e está depois dele, não é válido
-                    if elemento in instancia.pre_req[outro] && elem_idx > outro_idx
-                        valid = false
-                        break
-                    end
-                end
-            end
-
-            #Se passou nos dois casos anteriores, é uma recombinação factível
-            if valid
-                push!(solucoes_possiveis, pos_nova)
-            end
-        end
-
-        if isempty(solucoes_possiveis)
-            #Se não encontrou nenhuma recombinação válida, cancela a perturbação
-            return solucao_inicial, distancia_inicial
-        else
-            #Sorteia uma das posicções a realocar válidas deste elemento, inserindo-o lá
-            pos_sorteada = rand(solucoes_possiveis)
-            insert!(solucao, pos_sorteada, elemento)
-        end
-    end
-
-    #Aplicadas as recombinações para todo k, calcula a nova distância
-    nova_distancia = distancia_total(instancia, solucao)
-    return solucao, nova_distancia
-end
-
-
-
 #Função para busca iterada
-function busca_iterada(instancia::Instancia, max_iteracoes::Int, K::Int)
-    # tempo inicial
-    t0 = time()
-    # variáveis para armazenar a primeira iteração após 5s e 300s
-    iteracao_5 = nothing
-    iteracao_300 = nothing
-    #Inicialização dos valores
-    iteracoes=0
-    caminho=Int[]
-    distancia=0
-    #Gera caminho inicial
-    melhor_caminho = solucao_inicial(instancia)
-    #Calcula distância inicial
-    menor_distancia = distancia_total(instancia, melhor_caminho)
-    caminho=melhor_caminho
-    distancia=menor_distancia
-    # Imprime solução inicial 
-    println("$(round(0.0,digits=2)) segundos, distancia: $menor_distancia, $(join(melhor_caminho, "->"))")
-    #Iteração
-    while iteracoes<max_iteracoes
-        #Realiza busca local
-        caminho, distancia = busca_local(caminho, distancia, instancia)
-        #Atualiza solução se achar melhor e imprime
-        if distancia < menor_distancia
-            melhor_caminho=caminho; menor_distancia=distancia
-            #Cálculo tempo
-            elapsed = time() - t0
-            println("$(round(elapsed,digits=2)) segundos, distancia: $menor_distancia, $(join(melhor_caminho, "->"))")
-        end
-        caminho, distancia = perturbation( caminho, distancia, instancia, K)      
-        iteracoes+=1
-        # verifica e registra a primeira iteração atingida após 5s e 300s
-        elapsed = time() - t0
-        if iteracao_5 === nothing && elapsed >= 5.0
-            # iteracoes corresponde à iteração que acabou de completar (ou a próxima)
-            iteracao_5 = iteracoes
-            println("#5 segundos iteracao=$iteracao_5 elapsed=$(round(elapsed,digits=2))")
-        end
-        if iteracao_300 === nothing && elapsed >= 300.0
-            iteracao_300 = iteracoes
-            println("300 segundos iteracao=$iteracao_30 elapsed=$(round(elapsed,digits=2))")
-        end
-    end
+function busca_iterada(instancia :: Instancia, max_iteracoes)
+#Inicialização dos valores
+iteracoes=0
+melhor_caminho=Int[]
+menor_distancia=typemax(Int)
+#Gera caminho inicial
+caminho = solucao_inicial(instancia)
+#Calcula distância inicial
+distancia = distancia_total(instancia,caminho)
+#Imprime solução inicial (teste)
+println("Caminho: ",join(caminho, "->"), "\nDistancia: ", distancia)
+#busca_local
+caminho, distancia = busca_local(caminho,distancia,instancia)
+melhor_caminho=caminho
+menor_distancia=distancia
+println("Caminho: ",join(caminho, "->"), "\nDistancia: ", distancia)
 end
 
 #Main
 function main()
     #Verifica se usuário inseriu 3 parâmetros obrigatórios
-    if length(ARGS)<4
-        println("Estrutura pedida: julia peregrina.jl <arquivo_entrada> <numero_iteracoes> <seed> <numero_perturbacoes>")
+    if length(ARGS)<3
+        println("Estrutura pedida: julia peregrina.jl <arquivo_entrada> <numero_iteracoes> <seed>")
         return 
     end
-
+    #Salva parâmetros do usuário
     path = ARGS[1]
     max_iteracoes = parse(Int, ARGS[2])
     seed = parse(Int, ARGS[3])
-    K = parse(Int, ARGS[4])
-    if K === nothing
-        K = 2 #padrão
-    end
-
     #Usa seed para garantir mesma randomização
     Random.seed!(seed)
-
     #Lê instância
     instancia=leitor(path)
-
     #Busca iterada(sem tempo)
-    busca_iterada(instancia, max_iteracoes, K)
+    busca_iterada(instancia,100)
 end
 
 main()
