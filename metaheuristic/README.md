@@ -11,6 +11,7 @@ No terminal, execute o programa com o seguinte padrão:
 julia peregrina.jl <caminho_arquivo_entrada> <numero_iteracoes> <seed> <numero_perturbacoes>
 ```
 
+Exemplo:
 ```
 julia peregrina.jl instances/01.txt 1000 4 20
 ```
